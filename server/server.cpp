@@ -604,20 +604,39 @@ void socket_con::User_Cancel_Ticket()
 }
 void socket_con::Recv_data() // 第一步：收到客户端发来的数据
 {
-    char buff[4096] = {0};
-    int n = recv(c, buff, 4095, 0); // recv收到数据(报文)
-    if (0 == n)
+    //1.接收长度
+    char len_buff[4]{0};
+    int n = recv(c, len_buff, 4, MSG_WAITALL); // recv收到数据(报文)
+    if (4!=n)
     {
         cout << "client close" << endl;
         delete this;
         return;
     }
+
+    //转成主机字节序
+    int data_len=ntohl(*(int*)len_buff);
+    if (data_len <= 0 || data_len > 4096) { // 限制最大长度，防止攻击
+        cout << "非法数据长度" << endl;
+        Send_err();
+        return;
+    }
+
+    //2.接收JSON数据
+    char data_buff[4096] = {0};
+    n = recv(c, data_buff, data_len, MSG_WAITALL);//不收满指定字节数(4)，绝不返回
+    if (n != data_len) {
+        cout << "接收数据失败" << endl;
+        Send_err();
+        return;
+    }
+
     // 测试
-    cout << "recv=" << buff << endl;
+    cout << "recv=" << data_buff << endl;
 
     // 解析(反序列化)
     Json::Reader Read;
-    if (!Read.parse(buff, val))
+    if (!Read.parse(data_buff, data_buff + data_len,val))
     {
         cout << "Recv_data:解析json失败！" << endl;
         Send_err();
@@ -725,4 +744,7 @@ int main()
     // 释放资源
     event_free(sock_ev);
     event_base_free(base);
+
+    // 初始化 Redis 连接池
+    RedisPool::instance().init("127.0.0.1", 6379, 10);
 }

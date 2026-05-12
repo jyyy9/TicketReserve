@@ -49,6 +49,8 @@ public:
     void User_Show_My_Ticlet();//查看我的预约信息
     void User_Cancel_Ticket();//取消预约
 
+    bool send_json_msg(int sockfd, const Json::Value &val);//封装Length-Value
+
     ~socket_client()
     {
         close(sockfd);

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <stdio.h>
 #include <string>
@@ -11,6 +13,9 @@
 #include <jsoncpp/json/json.h>
 #include "../common/OpType.h"
 #include <mysql/mysql.h>
+#include<hiredis/hiredis.h>
+#include<vector>//存放连接
+#include<mutex>//多线程锁
 
 using namespace std;
 
@@ -145,20 +150,4 @@ private:
     bool mysql_user_begin();
     bool mysql_user_commit();
     bool mysql_user_rollback();
-};
-
-//redis类
-class redis_client
-{
-    public:
-    redis_client();
-    ~redis_client();
-
-    bool connect_redis();//连接
-
-    //存缓存
-
-    //取缓存（没命中就去）
-
-    //删除缓存（下单之后/取消后要删除缓存）
 };

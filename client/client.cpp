@@ -1,5 +1,24 @@
 #include "client.h"
 
+bool send_json_msg(int sockfd, const Json::Value &val)
+{
+    Json::FastWriter writer;
+    writer.omitEndingLineFeed();
+    string send_str = writer.write(val);
+
+    int len = send_str.size();
+    if (len <= 0 || len > 4096 - 4) {
+        return false;
+    }
+
+    char send_buff[4096];
+    *(int*)send_buff = htonl(len);               // 4字节长度头（网络字节序）
+    memcpy(send_buff + 4, send_str.c_str(), len);// 数据体
+
+    send(sockfd, send_buff, len + 4, 0);
+    return true;
+}
+
 bool socket_client::connect_server() // 客户端主动连接服务器
 {
     sockfd = socket(AF_INET, SOCK_STREAM, 0); // 创建基于IPV4的TCP通信 套接字
@@ -93,10 +112,7 @@ void socket_client::User_Register() // 注册
     val["gender"] = static_cast<int>(gen);
     val["id_card"] = id_card;
 
-    Json::FastWriter writer;
-    writer.omitEndingLineFeed();
-    string send_str = writer.write(val);
-    send(sockfd, send_str.c_str(), send_str.size(), 0);
+    send_json_msg(sockfd, val);
 
     /*服务器接收到信息后要给客户端返回信息，
     1.再定义一个JSON对象用于接收，
@@ -143,9 +159,7 @@ void socket_client::User_Login() // 登录
     val["user_tel"] = usertel;
     val["user_passwd"] = passwd;
 
-    Json::FastWriter writer;
-    writer.omitEndingLineFeed();
-    send(sockfd, writer.write(val).c_str(), writer.write(val).size(), 0);
+    send_json_msg(sockfd, val);
 
     char buff[1024] = {0};
 
@@ -179,9 +193,7 @@ void socket_client::User_Show_Ticket()
 
     Json::Value val;
     val["type"] = static_cast<int>(OP_TYPE::VIEW_AVAILABLE_BOOKING);
-    Json::FastWriter writer;
-    writer.omitEndingLineFeed();
-    send(sockfd, writer.write(val).c_str(), writer.write(val).size(), 0);
+    send_json_msg(sockfd, val);
 
     char buff[4096] = {0};
     // recv
@@ -257,9 +269,7 @@ void socket_client::User_Book_Ticket()
     val["ticket_id"] = ticketid;
     val["book_num"] = num;
 
-    Json::FastWriter writer;
-    writer.omitEndingLineFeed(); // 调用 omitEndingLineFeed() 后，生成的 JSON 字符串末尾将不再添加换行符
-    send(sockfd, writer.write(val).c_str(), writer.write(val).size(), 0);
+    send_json_msg(sockfd, val);
 
     char buff[256] = {0};
     int n = recv(sockfd, buff, 255, 0);
@@ -292,9 +302,7 @@ void socket_client::User_Show_My_Ticlet()
     val["type"] = static_cast<int>(OP_TYPE::VIEW_MY_BOOKING);
     val["user_tel"] = usertel;
 
-    Json::FastWriter write;
-    write.omitEndingLineFeed();
-    send(sockfd, write.write(val).c_str(), write.write(val).size(), 0);
+    send_json_msg(sockfd, val);
 
     char buff[1024] = {0};
     int n = recv(sockfd, buff, 1023, 0);
@@ -365,9 +373,7 @@ cout << "请输入要取消的编号：" << endl;
     val["ticket_id"] = ticketid;
     val["book_num"] = num;
 
-    Json::FastWriter writer;
-    writer.omitEndingLineFeed(); // 调用 omitEndingLineFeed() 后，生成的 JSON 字符串末尾将不再添加换行符
-    send(sockfd, writer.write(val).c_str(), writer.write(val).size(), 0);
+    send_json_msg(sockfd, val);
 
     char buff[256] = {0};
     int n = recv(sockfd, buff, 255, 0);
