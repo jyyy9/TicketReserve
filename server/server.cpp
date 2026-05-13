@@ -65,7 +65,12 @@ void socket_con::Send_err()
 
     writer.omitEndingLineFeed();
     string send_str = writer.write(res_val);
-    send(c, send_str.c_str(), send_str.size(), 0);
+    int len = send_str.size();
+
+    char send_buff[4096];
+    *(int*)send_buff = htonl(len);
+    memcpy(send_buff + 4, send_str.c_str(), len);
+    send(c, send_buff, len + 4, 0);
 }
 void socket_con::Send_ok()
 {
@@ -74,7 +79,12 @@ void socket_con::Send_ok()
 
     writer.omitEndingLineFeed();
     string send_str = writer.write(res_val);
-    send(c, send_str.c_str(), send_str.size(), 0);
+    int len = send_str.size();
+
+    char send_buff[4096];
+    *(int*)send_buff = htonl(len);
+    memcpy(send_buff + 4, send_str.c_str(), len);
+    send(c, send_buff, len + 4, 0);
 }
 void socket_con::User_Register()
 {
@@ -118,24 +128,39 @@ void socket_con::User_Login()
 
     writer.omitEndingLineFeed();
     string send_str = writer.write(res_val);
-    send(c, send_str.c_str(), send_str.size(), 0);
+    int len = send_str.size();
+
+    char send_buff[4096];
+    *(int*)send_buff = htonl(len);
+    memcpy(send_buff + 4, send_str.c_str(), len);
+    send(c, send_buff, len + 4, 0);
     return;
 }
 void socket_con::User_Show_Ticket()
 {
+    cout << "User_Show_Ticket start" << endl;
     Json::Value resval;
     // 每次调用数据库函数之前先去连接数据库
 
     mysql_client cli;
     if (!cli.mysql_User_Show_Ticket(resval))
     {
+        cout << "mysql_User_Show_Ticket failed" << endl; 
         Send_err();
         return;
     }
+    cout << "mysql_User_Show_Ticket success, sending response" << endl;
 
     Json::FastWriter writer;
     writer.omitEndingLineFeed();
-    send(c, writer.write(resval).c_str(), writer.write(resval).size(), 0);
+    string send_str = writer.write(resval);
+    int len = send_str.size();
+
+    char send_buff[4096];
+    *(int*)send_buff = htonl(len);
+    memcpy(send_buff + 4, send_str.c_str(), len);
+    send(c, send_buff, len + 4, 0);
+    cout << "response sent" << endl; 
     return;
 }
 
@@ -169,7 +194,13 @@ void socket_con::User_Show_My_Ticlet()
     val["status"] = "OK";
     Json::FastWriter writer;
     writer.omitEndingLineFeed();
-    send(c, writer.write(val).c_str(), writer.write(val).size(), 0);
+    string send_str = writer.write(val);
+    int len = send_str.size();
+
+    char send_buff[4096];
+    *(int*)send_buff = htonl(len);
+    memcpy(send_buff + 4, send_str.c_str(), len);
+    send(c, send_buff, len + 4, 0);
     return;
 }
 void socket_con::User_Cancel_Ticket()
