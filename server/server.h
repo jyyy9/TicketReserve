@@ -3,11 +3,22 @@
 #include <event.h>
 #include <jsoncpp/json/json.h>
 #include <mysql/mysql.h>
+<<<<<<< HEAD
 #include <hiredis/hiredis.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <unistd.h>
+=======
+#include<hiredis/hiredis.h>
+#include<vector>//存放连接
+#include<mutex>//多线程锁
+#include <queue>
+#include <condition_variable>
+#include <thread>
+#include <functional>
+#include <atomic>
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44
 
 #include <iostream>
 #include <string>
@@ -101,12 +112,16 @@ public:
     void User_Show_My_Ticlet();
     void User_Cancel_Ticket();
 
+    void AddRef() { ref_++; }
+    void ReleaseRef() { if (--ref_ == 0) delete this; }
+
 private:
     int c;
     struct event* c_ev;
     Json::FastWriter writer;
     Json::Value val;
 
+<<<<<<< HEAD
     string username;
     string usertel;
     string passwd;
@@ -114,3 +129,65 @@ private:
     GENDER gen;
     string id_card;
 };
+=======
+    std::atomic<int> ref_{1};
+
+    string username; // 用户名
+    string usertel;  // 电话
+    string passwd;   // 密码
+    string realname; // 真实姓名
+    GENDER gen;      // 性别：0未知 1男 2女
+    string id_card;  // 身份证号
+};
+
+// 线程池
+class ThreadPool {
+public:
+    using Task = std::function<void()>;
+
+    ThreadPool(int num = 10) {
+        for (int i = 0; i < num; ++i) {
+            workers_.emplace_back([this] {
+                while (true) {
+                    Task task;
+                    {
+                        std::unique_lock<std::mutex> lock(mtx_);
+                        cv_.wait(lock, [this] {
+                            return stop_ || !tasks_.empty();
+                        });
+                        if (stop_ && tasks_.empty()) return;
+                        task = move(tasks_.front());
+                        tasks_.pop();
+                    }
+                    task();
+                }
+            });
+        }
+    }
+
+    ~ThreadPool() {
+        {
+            std::lock_guard<std::mutex> lock(mtx_);
+            stop_ = true;
+        }
+        cv_.notify_all();
+        for (auto& t : workers_) t.join();
+    }
+
+    void add_task(Task task) {
+        std::lock_guard<std::mutex> lock(mtx_);
+        tasks_.emplace(move(task));
+        cv_.notify_one();
+    }
+
+private:
+    vector<std::thread> workers_;
+    queue<Task> tasks_;
+    std::mutex mtx_;
+    std::condition_variable cv_;
+    bool stop_ = false;
+};
+
+// 全局线程池（extern）
+extern ThreadPool g_pool;
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44

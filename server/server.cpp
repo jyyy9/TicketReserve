@@ -3,8 +3,15 @@
 #include "db/redis_client.h"
 #include "db/redis_pool.h"
 
+<<<<<<< HEAD
 void SOCK_CON_CALLBACK(int sockfd, short ev, void* arg);
 void SOCK_LIS_CALLBACK(int sockfd, short ev, void* arg);
+=======
+// 创建全局线程池
+ThreadPool g_pool(20); // 20个工作线程
+
+void SOCK_CON_CALLBACK(int sockfd, short ev, void *arg); // 函数声明
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44
 
 bool socket_listen::socket_init()
 {
@@ -64,7 +71,12 @@ void socket_con::Send_err()
 
     writer.omitEndingLineFeed();
     string send_str = writer.write(res_val);
-    send(c, send_str.c_str(), send_str.size(), 0);
+    int len = send_str.size();
+
+    char send_buff[4096];
+    *(int *)send_buff = htonl(len);
+    memcpy(send_buff + 4, send_str.c_str(), len);
+    send(c, send_buff, len + 4, 0);
 }
 
 void socket_con::Send_ok()
@@ -74,7 +86,12 @@ void socket_con::Send_ok()
 
     writer.omitEndingLineFeed();
     string send_str = writer.write(res_val);
-    send(c, send_str.c_str(), send_str.size(), 0);
+    int len = send_str.size();
+
+    char send_buff[4096];
+    *(int *)send_buff = htonl(len);
+    memcpy(send_buff + 4, send_str.c_str(), len);
+    send(c, send_buff, len + 4, 0);
 }
 
 void socket_con::User_Register()
@@ -121,23 +138,48 @@ void socket_con::User_Login()
 
     writer.omitEndingLineFeed();
     string send_str = writer.write(res_val);
+<<<<<<< HEAD
     send(c, send_str.c_str(), send_str.size(), 0);
+=======
+    int len = send_str.size();
+
+    char send_buff[4096];
+    *(int *)send_buff = htonl(len);
+    memcpy(send_buff + 4, send_str.c_str(), len);
+    send(c, send_buff, len + 4, 0);
+    return;
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44
 }
 
 void socket_con::User_Show_Ticket()
 {
+    cout << "User_Show_Ticket start" << endl;
     Json::Value resval;
 
     mysql_client cli;
     if (!cli.mysql_User_Show_Ticket(resval))
     {
+        cout << "mysql_User_Show_Ticket failed" << endl;
         Send_err();
         return;
     }
+    cout << "mysql_User_Show_Ticket success, sending response" << endl;
 
     Json::FastWriter writer;
     writer.omitEndingLineFeed();
+<<<<<<< HEAD
     send(c, writer.write(resval).c_str(), writer.write(resval).size(), 0);
+=======
+    string send_str = writer.write(resval);
+    int len = send_str.size();
+
+    char send_buff[4096];
+    *(int *)send_buff = htonl(len);
+    memcpy(send_buff + 4, send_str.c_str(), len);
+    send(c, send_buff, len + 4, 0);
+    cout << "response sent" << endl;
+    return;
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44
 }
 
 void socket_con::User_Book_Ticket()
@@ -169,7 +211,18 @@ void socket_con::User_Show_My_Ticlet()
     val["status"] = "OK";
     Json::FastWriter writer;
     writer.omitEndingLineFeed();
+<<<<<<< HEAD
     send(c, writer.write(val).c_str(), writer.write(val).size(), 0);
+=======
+    string send_str = writer.write(val);
+    int len = send_str.size();
+
+    char send_buff[4096];
+    *(int *)send_buff = htonl(len);
+    memcpy(send_buff + 4, send_str.c_str(), len);
+    send(c, send_buff, len + 4, 0);
+    return;
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44
 }
 
 void socket_con::User_Cancel_Ticket()
@@ -189,8 +242,14 @@ void socket_con::User_Cancel_Ticket()
 
 void socket_con::Recv_data()
 {
+<<<<<<< HEAD
     char len_buff[4] = {0};
     int n = recv(c, len_buff, 4, MSG_WAITALL);
+=======
+    // 1.接收长度
+    char len_buff[4]{0};
+    int n = recv(c, len_buff, 4, MSG_WAITALL); // recv收到数据(报文)
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44
     if (4 != n)
     {
         cout << "client close" << endl;
@@ -198,16 +257,29 @@ void socket_con::Recv_data()
         return;
     }
 
+<<<<<<< HEAD
     int data_len = ntohl(*(int*)len_buff);
     if (data_len <= 0 || data_len > 4096)
     {
+=======
+    // 转成主机字节序
+    int data_len = ntohl(*(int *)len_buff);
+    if (data_len <= 0 || data_len > 4096)
+    { // 限制最大长度，防止攻击
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44
         cout << "非法数据长度" << endl;
         Send_err();
         return;
     }
 
+<<<<<<< HEAD
     char data_buff[4096] = {0};
     n = recv(c, data_buff, data_len, MSG_WAITALL);
+=======
+    // 2.接收JSON数据
+    char data_buff[4096] = {0};
+    n = recv(c, data_buff, data_len, MSG_WAITALL); // 不收满指定字节数(4)，绝不返回
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44
     if (n != data_len)
     {
         cout << "接收数据失败" << endl;
@@ -217,6 +289,11 @@ void socket_con::Recv_data()
 
     cout << "recv=" << data_buff << endl;
 
+<<<<<<< HEAD
+=======
+    // 解析(反序列化)
+    Json::Value val;
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44
     Json::Reader Read;
     if (!Read.parse(data_buff, data_buff + data_len, val))
     {
@@ -225,6 +302,7 @@ void socket_con::Recv_data()
         return;
     }
 
+<<<<<<< HEAD
     int ops = val["type"].asInt();
 
     switch (ops)
@@ -253,6 +331,48 @@ void socket_con::Recv_data()
         cout << "输入无效！" << endl;
         break;
     }
+=======
+    socket_con *self = this;
+    self->AddRef(); // 防止线程执行前对象被销毁
+
+    // 抛给线程池执行***
+    g_pool.add_task([self, val]()
+                    {
+                        self->val = val;
+                        // 拿出操作类型，调用相关的函数
+                        int ops = self->val["type"].asInt();
+
+                        switch (ops)
+                        {
+                        case (int)OP_TYPE::LOGIN:
+                            self->User_Login();
+                            break;
+                        case (int)OP_TYPE::REGISTER:
+                            self->User_Register();
+                            break;
+                        case (int)OP_TYPE::VIEW_AVAILABLE_BOOKING:
+                            self->User_Show_Ticket();
+                            break;
+                        case (int)OP_TYPE::BOOK_APPOINTMENT:
+                            self->User_Book_Ticket();
+                            break;
+                        case (int)OP_TYPE::VIEW_MY_BOOKING:
+                            self->User_Show_My_Ticlet();
+                            break;
+                        case (int)OP_TYPE::CANCEL_MY_BOOKING:
+                            self->User_Cancel_Ticket();
+                            break;
+                        case (int)OP_TYPE::LOGOUT:
+                            ops = false;
+                            break;
+
+                        default:
+                            cout << "输入无效！" << endl;
+                            break;
+                        }
+                        self->ReleaseRef(); // 减引用
+                    });
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44
 }
 
 void SOCK_CON_CALLBACK(int sockfd, short ev, void* arg)
@@ -294,19 +414,31 @@ void SOCK_LIS_CALLBACK(int sockfd, short ev, void* arg)
 
 int main()
 {
+<<<<<<< HEAD
     if (!MySQLPool::instance().init("127.0.0.1", "root", "123456",
                                       "Online_Res_DB", 3306, 10))
+=======
+    if (!MySQLPool::instance().init("127.0.0.1", "root", "123456", "Online_Res_DB", 3306, 10))
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44
     {
         cout << "Mysql 连接池初始化失败！" << endl;
         exit(1);
     }
+<<<<<<< HEAD
 
+=======
+    // 初始化 Redis 连接池
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44
     if (!RedisPool::instance().init("127.0.0.1", 6379, 10))
     {
         cout << "Redis 连接池初始化失败！" << endl;
         exit(1);
     }
+<<<<<<< HEAD
 
+=======
+    // 监听套接字
+>>>>>>> 997ecac1d62ed16b323db5dc5da067eade2cba44
     socket_listen sock_ser;
     if (!sock_ser.socket_init())
     {
