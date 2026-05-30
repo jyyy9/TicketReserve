@@ -1,40 +1,41 @@
 #include "client.h"
-using namespace std;
 
-bool socket_client::send_json_msg(int sockfd, const Json::Value &val)
+bool socket_client::send_json_msg(int sockfd, const Json::Value& val)
 {
     Json::FastWriter writer;
     writer.omitEndingLineFeed();
     string send_str = writer.write(val);
 
     int len = send_str.size();
-    if (len <= 0 || len > 4096 - 4) {
+    if (len <= 0 || len > 4096 - 4)
+    {
         return false;
     }
 
     char send_buff[4096];
-    *(int*)send_buff = htonl(len);               // 4字节长度头（网络字节序）
-    memcpy(send_buff + 4, send_str.c_str(), len);// 数据体
+    *(int*)send_buff = htonl(len);
+    memcpy(send_buff + 4, send_str.c_str(), len);
 
     send(sockfd, send_buff, len + 4, 0);
     return true;
 }
 
-bool socket_client::connect_server() // 客户端主动连接服务器
+bool socket_client::connect_server()
 {
-    sockfd = socket(AF_INET, SOCK_STREAM, 0); // 创建基于IPV4的TCP通信 套接字
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1)
     {
         cout << "create socket err" << endl;
         return false;
     }
-    struct sockaddr_in saddr;                       // 服务器地址
-    memset(&saddr, 0, sizeof(saddr));               // 将结构体置空
-    saddr.sin_family = AF_INET;                     // 设置结构体的地址族
-    saddr.sin_port = htons(6789);                   // 定义端口号，并转换为网络字节序
-    saddr.sin_addr.s_addr = inet_addr("127.0.0.1"); // 定义IP地址，并转换为网络字节序
 
-    int res = connect(sockfd, reinterpret_cast<struct sockaddr *>(&saddr), sizeof(saddr));
+    struct sockaddr_in saddr;
+    memset(&saddr, 0, sizeof(saddr));
+    saddr.sin_family = AF_INET;
+    saddr.sin_port = htons(6789);
+    saddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    int res = connect(sockfd, reinterpret_cast<struct sockaddr*>(&saddr), sizeof(saddr));
     if (res == -1)
     {
         cout << "connect err" << endl;
@@ -44,6 +45,7 @@ bool socket_client::connect_server() // 客户端主动连接服务器
     cout << "connect to server success!" << endl;
     return true;
 }
+
 void socket_client::print_info()
 {
     if (dl_flg)
@@ -52,7 +54,7 @@ void socket_client::print_info()
         cout << "1.查看预约 2.预订 3.查看我的预约 4.取消预约 5.退出" << endl;
         cout << "------------------" << endl;
         cin >> user_op;
-        user_op += OFFSET; // 加偏移量3,4,5,6...
+        user_op += OFFSET;
     }
     else
     {
@@ -62,11 +64,13 @@ void socket_client::print_info()
         cout << "|---请输入您的选项编号-----|" << endl;
         cin >> user_op;
         if (user_op == 3)
+        {
             user_op = static_cast<int>(OP_TYPE::LOGOUT);
+        }
     }
 }
 
-void socket_client::User_Register() // 注册
+void socket_client::User_Register()
 {
     cout << "//--------注册---------//" << endl;
     cout << "请输入手机号码:" << endl;
@@ -79,18 +83,20 @@ void socket_client::User_Register() // 注册
     cout << "请输入密码:" << endl;
     cin >> passwd;
 
-    cout << "请再次输入密码:" << endl;
     if (passwd.empty())
     {
         cout << "密码不能为空!" << endl;
         return;
     }
+
+    cout << "请再次输入密码:" << endl;
     cin >> tmp;
     if (passwd.compare(tmp))
     {
         cout << "密码不一致!" << endl;
         return;
     }
+
     cout << "请输入真实姓名:" << endl;
     cin >> realname;
 
@@ -100,10 +106,8 @@ void socket_client::User_Register() // 注册
     int gen_input;
     cout << "请输入性别(0未知/1男/2女):" << endl;
     cin >> gen_input;
-
     gen = static_cast<GENDER>(gen_input);
 
-    // 注册时传入的报文
     Json::Value val;
     val["type"] = static_cast<int>(OP_TYPE::REGISTER);
     val["user_tel"] = usertel;
@@ -115,12 +119,6 @@ void socket_client::User_Register() // 注册
 
     send_json_msg(sockfd, val);
 
-    /*服务器接收到信息后要给客户端返回信息，
-    1.再定义一个JSON对象用于接收，
-    2.清空当前的JSON，填充新的值
-    */
-
-    // 客户端接收服务器返回的结果
     char buff[256] = {0};
     if (recv(sockfd, buff, 255, 0) <= 0)
     {
@@ -137,6 +135,7 @@ void socket_client::User_Register() // 注册
         cout << "Json解析失败！" << endl;
         return;
     }
+
     string s = val["status"].asString();
     if (s.compare("OK") != 0)
     {
@@ -145,11 +144,10 @@ void socket_client::User_Register() // 注册
     }
     dl_flg = true;
     cout << "注册成功！" << endl;
-    return;
 }
-void socket_client::User_Login() // 登录
-{
 
+void socket_client::User_Login()
+{
     cout << "请输入手机号码：" << endl;
     cin >> usertel;
     cout << "请输入密码：" << endl;
@@ -163,7 +161,6 @@ void socket_client::User_Login() // 登录
     send_json_msg(sockfd, val);
 
     char buff[1024] = {0};
-
     if (recv(sockfd, buff, 1023, 0) <= 0)
     {
         cout << "ser close!" << endl;
@@ -171,6 +168,7 @@ void socket_client::User_Login() // 登录
         sockfd = -1;
         return;
     }
+
     val.clear();
     Json::Reader Read;
     if (!Read.parse(buff, val))
@@ -189,15 +187,14 @@ void socket_client::User_Login() // 登录
     dl_flg = true;
     cout << "登录成功！" << endl;
 }
+
 void socket_client::User_Show_Ticket()
 {
-
     Json::Value val;
     val["type"] = static_cast<int>(OP_TYPE::VIEW_AVAILABLE_BOOKING);
     send_json_msg(sockfd, val);
 
     char buff[4096] = {0};
-    // recv
     int n = recv(sockfd, buff, 4095, 0);
     if (n <= 0)
     {
@@ -206,26 +203,29 @@ void socket_client::User_Show_Ticket()
         sockfd = -1;
         return;
     }
+
     m_val.clear();
-    // 反序列化
     Json::Reader Read;
     if (!Read.parse(buff, m_val))
     {
         cout << "解析Json失败！" << endl;
         return;
     }
+
     string st = m_val["status"].asString();
     if (st.compare("OK") != 0)
     {
         cout << "查询预约信息失败！" << endl;
         return;
     }
+
     int num = m_val["num"].asInt();
     if (num == 0)
     {
         cout << "没有可预约的信息！" << endl;
         return;
     }
+
     cout << "============================================================================================" << endl;
     cout << left
          << setw(18) << "门票编号"
@@ -248,18 +248,15 @@ void socket_client::User_Show_Ticket()
              << setw(25) << m_val["ticket_arr"][i]["use_date"].asString()
              << setw(10) << m_val["ticket_arr"][i]["booked_count"].asString() << endl;
     }
-    return;
 }
 
 void socket_client::User_Book_Ticket()
 {
-
-    // 同时改两张表，添加事务进行管理
     User_Show_Ticket();
     cout << "请输入要预定的编号：" << endl;
     int ticketid = 0;
     cin >> ticketid;
-    // 做一个有效性检查ticket_id
+
     cout << "请输入要预定的数量：" << endl;
     int num = 0;
     cin >> num;
@@ -279,6 +276,7 @@ void socket_client::User_Book_Ticket()
         cout << "ser close!" << endl;
         return;
     }
+
     val.clear();
     Json::Reader Read;
     if (!Read.parse(buff, val))
@@ -294,11 +292,10 @@ void socket_client::User_Book_Ticket()
         return;
     }
     cout << "预订成功！" << endl;
-    return;
 }
+
 void socket_client::User_Show_My_Ticlet()
 {
-
     Json::Value val;
     val["type"] = static_cast<int>(OP_TYPE::VIEW_MY_BOOKING);
     val["user_tel"] = usertel;
@@ -314,6 +311,7 @@ void socket_client::User_Show_My_Ticlet()
         sockfd = -1;
         return;
     }
+
     val.clear();
     Json::Reader Read;
     if (!Read.parse(buff, val))
@@ -328,12 +326,14 @@ void socket_client::User_Show_My_Ticlet()
         cout << "查询我的预约失败！" << endl;
         return;
     }
+
     int num = val["num"].asInt();
     if (num == 0)
     {
         cout << "没有预约记录！" << endl;
         return;
     }
+
     cout << "============================================================================================" << endl;
     cout << left
          << setw(10) << "预约ID"
@@ -344,6 +344,7 @@ void socket_client::User_Show_My_Ticlet()
          << setw(25) << "订单创建时间"
          << setw(10) << "状态(1未核销0已核销)" << endl;
     cout << "============================================================================================" << endl;
+
     for (int i = 0; i < num; i++)
     {
         cout << left
@@ -355,15 +356,15 @@ void socket_client::User_Show_My_Ticlet()
              << setw(24) << val["ticket_arr"][i]["create_time"].asString()
              << setw(10) << val["ticket_arr"][i]["status"].asString() << endl;
     }
-    return;
 }
+
 void socket_client::User_Cancel_Ticket()
 {
-User_Show_Ticket();
-cout << "请输入要取消的编号：" << endl;
+    User_Show_Ticket();
+    cout << "请输入要取消的编号：" << endl;
     int ticketid = 0;
     cin >> ticketid;
-    // 做一个有效性检查ticket_id
+
     cout << "请输入要取消的数量：" << endl;
     int num = 0;
     cin >> num;
@@ -383,6 +384,7 @@ cout << "请输入要取消的编号：" << endl;
         cout << "ser close!" << endl;
         return;
     }
+
     val.clear();
     Json::Reader Read;
     if (!Read.parse(buff, val))
@@ -398,9 +400,9 @@ cout << "请输入要取消的编号：" << endl;
         return;
     }
     cout << "取消预订成功！" << endl;
-    return;
 }
-void socket_client::Run() // 从键盘输入信息给客户端
+
+void socket_client::Run()
 {
     while (runing)
     {
@@ -409,7 +411,6 @@ void socket_client::Run() // 从键盘输入信息给客户端
         switch (user_op)
         {
         case (int)OP_TYPE::LOGIN:
-
             User_Login();
             break;
         case (int)OP_TYPE::REGISTER:
@@ -430,7 +431,6 @@ void socket_client::Run() // 从键盘输入信息给客户端
         case (int)OP_TYPE::LOGOUT:
             runing = false;
             break;
-
         default:
             cout << "输入无效！" << endl;
             break;
@@ -445,7 +445,7 @@ int main()
     {
         exit(1);
     }
-    cli.Run(); // 重点
+    cli.Run();
 
     exit(0);
 }
