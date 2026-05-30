@@ -13,9 +13,9 @@
 #include <jsoncpp/json/json.h>
 #include "../common/OpType.h"
 #include <mysql/mysql.h>
-#include<hiredis/hiredis.h>
-#include<vector>//存放连接
-#include<mutex>//多线程锁
+#include <hiredis/hiredis.h>
+#include <vector> //存放连接
+#include <mutex>  //多线程锁
 
 using namespace std;
 
@@ -85,12 +85,12 @@ public:
     void Send_ok();
 
     // 业务功能
-    void User_Register();    // 注册
-    void User_Login();       // 登录
-    void User_Show_Ticket(); // 查看预约信息
-    void User_Book_Ticket(); // 预定操作
-    void User_Show_My_Ticlet();//查看我的预约信息
-    void User_Cancel_Ticket();//取消预约
+    void User_Register();       // 注册
+    void User_Login();          // 登录
+    void User_Show_Ticket();    // 查看预约信息
+    void User_Book_Ticket();    // 预定操作
+    void User_Show_My_Ticlet(); // 查看我的预约信息
+    void User_Cancel_Ticket();  // 取消预约
 
 private:
     int c;              // 文件描述符
@@ -105,4 +105,3 @@ private:
     GENDER gen;      // 性别：0未知 1男 2女
     string id_card;  // 身份证号
 };
-
